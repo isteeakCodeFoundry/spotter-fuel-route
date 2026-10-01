@@ -41,6 +41,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # Third-party apps
+    "rest_framework",
+    "drf_spectacular",
+
+    # Project apps
     "trip_planner",
 ]
 
@@ -129,4 +134,18 @@ MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Spotter Fuel Route API",
+    "DESCRIPTION": (
+        "Plans a route between two US locations and determines "
+        "cost-effective fuel stops along the route."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
