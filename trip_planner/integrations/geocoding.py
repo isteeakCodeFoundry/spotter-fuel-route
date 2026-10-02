@@ -2,6 +2,7 @@ from trip_planner.domain.entities import (
     Coordinates,
     GeocodedLocation,
 )
+from time import sleep
 import httpx
 
 
@@ -56,22 +57,39 @@ class HeiGitGeocoder:
         if not normalized_query:
             raise ValueError("Location query must not be blank.")
 
-        try:
-            response = self._client.get(
-                self.BASE_URL,
-                params={
-                    "text": normalized_query,
-                    "size": 1,
-                    "boundary.country": "US",
-                },
-            )
+        response = None
 
-            response.raise_for_status()
+        for attempt in range(2):
+            try:
+                response = self._client.get(
+                    self.BASE_URL,
+                    params={
+                        "text": normalized_query,
+                        "size": 1,
+                        "boundary.country": "US",
+                    },
+                )
 
-        except httpx.HTTPError as exc:
-            raise GeocodingError(
-                "Location geocoding provider request failed."
-            ) from exc
+                response.raise_for_status()
+                break
+
+            except (
+                    httpx.RemoteProtocolError,
+                    httpx.ConnectError,
+                    httpx.ReadTimeout,
+            ) as exc:
+                if attempt == 1:
+                    raise GeocodingError(
+                        "Location geocoding provider request failed."
+                    ) from exc
+
+                sleep(0.25)
+
+            except httpx.HTTPError as exc:
+                raise GeocodingError(
+                    "Location geocoding provider request failed."
+                ) from exc
+
 
         try:
             payload = response.json()
