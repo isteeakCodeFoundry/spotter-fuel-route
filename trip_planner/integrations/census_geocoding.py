@@ -4,7 +4,7 @@ from io import StringIO
 
 import httpx
 
-from trip_planner.integrations.geocoding import Coordinates
+from trip_planner.domain.entities import Coordinates
 
 
 class CensusGeocodingError(Exception):

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from zipfile import ZipFile
 
-from trip_planner.integrations.geocoding import Coordinates
+from trip_planner.domain.entities import Coordinates
 
 
 class CensusGazetteerError(Exception):

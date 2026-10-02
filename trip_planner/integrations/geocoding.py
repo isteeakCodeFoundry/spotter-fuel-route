@@ -1,39 +1,34 @@
-from dataclasses import dataclass
-from time import monotonic, sleep
-
+from trip_planner.domain.entities import (
+    Coordinates,
+    GeocodedLocation,
+)
 import httpx
 
 
 class GeocodingError(Exception):
-    pass
+    """Base error for geocoding failures."""
 
 
-@dataclass(frozen=True, slots=True)
-class Coordinates:
-    latitude: float
-    longitude: float
+class LocationNotFoundError(GeocodingError):
+    """Raised when a US location cannot be resolved."""
 
-
-class NominatimGeocoder:
-    BASE_URL = "https://nominatim.openstreetmap.org/search"
+class HeiGitGeocoder:
+    BASE_URL = "https://api.heigit.org/pelias/v1/search"
 
     def __init__(
             self,
             *,
-            user_agent: str,
-            minimum_interval_seconds: float = 1.05,
-    ):
-        if minimum_interval_seconds < 1.0:
-            raise ValueError(
-                "Nominatim requests must be limited to at most one per second."
-            )
+            api_key: str,
+            client: httpx.Client | None = None,
+    ) -> None:
+        if not api_key.strip():
+            raise ValueError("HeiGIT API key must not be blank.")
 
-        self._minimum_interval_seconds = minimum_interval_seconds
-        self._last_request_at: float | None = None
+        self._owns_client = client is None
 
-        self._client = httpx.Client(
+        self._client = client or httpx.Client(
             headers={
-                "User-Agent": user_agent,
+                "Authorization": api_key,
                 "Accept": "application/json",
             },
             timeout=httpx.Timeout(
@@ -49,25 +44,25 @@ class NominatimGeocoder:
         self.close()
 
     def close(self) -> None:
-        self._client.close()
+        if self._owns_client:
+            self._client.close()
 
-    def geocode(self, query: str) -> Coordinates | None:
-        query = " ".join(query.split())
+    def geocode(
+            self,
+            query: str,
+    ) -> GeocodedLocation:
+        normalized_query = " ".join(query.split())
 
-        if not query:
-            return None
-
-        self._wait_for_rate_limit()
+        if not normalized_query:
+            raise ValueError("Location query must not be blank.")
 
         try:
             response = self._client.get(
                 self.BASE_URL,
                 params={
-                    "q": query,
-                    "format": "jsonv2",
-                    "limit": 1,
-                    "countrycodes": "us",
-                    "addressdetails": 1,
+                    "text": normalized_query,
+                    "size": 1,
+                    "boundary.country": "US",
                 },
             )
 
@@ -75,37 +70,70 @@ class NominatimGeocoder:
 
         except httpx.HTTPError as exc:
             raise GeocodingError(
-                f"Geocoding request failed for {query!r}."
+                "Location geocoding provider request failed."
             ) from exc
 
         try:
-            results = response.json()
+            payload = response.json()
         except ValueError as exc:
             raise GeocodingError(
-                "Geocoder returned invalid JSON."
+                "Location geocoding provider returned invalid JSON."
             ) from exc
 
-        if not results:
-            return None
+        features = payload.get("features")
 
-        result = results[0]
+        if not isinstance(features, list) or not features:
+            raise LocationNotFoundError(
+                f"Could not resolve location within the USA: "
+                f"{normalized_query!r}"
+            )
+
+        feature = features[0]
 
         try:
-            return Coordinates(
-                latitude=float(result["lat"]),
-                longitude=float(result["lon"]),
-            )
-        except (KeyError, TypeError, ValueError) as exc:
+            properties = feature["properties"]
+            geometry = feature["geometry"]
+
+            coordinates = geometry["coordinates"]
+
+            longitude = float(coordinates[0])
+            latitude = float(coordinates[1])
+
+            label = str(properties["label"])
+            country_code = str(properties["country_a"])
+
+        except (
+                KeyError,
+                IndexError,
+                TypeError,
+                ValueError,
+        ) as exc:
             raise GeocodingError(
-                "Geocoder returned invalid coordinates."
+                "Location geocoding provider returned "
+                "an unexpected response."
             ) from exc
 
-    def _wait_for_rate_limit(self) -> None:
-        if self._last_request_at is not None:
-            elapsed = monotonic() - self._last_request_at
-            remaining = self._minimum_interval_seconds - elapsed
+        if country_code != "USA":
+            raise LocationNotFoundError(
+                f"Location is not within the USA: "
+                f"{normalized_query!r}"
+            )
 
-            if remaining > 0:
-                sleep(remaining)
+        if not (-90 <= latitude <= 90):
+            raise GeocodingError(
+                "Geocoder returned an invalid latitude."
+            )
 
-        self._last_request_at = monotonic()
+        if not (-180 <= longitude <= 180):
+            raise GeocodingError(
+                "Geocoder returned an invalid longitude."
+            )
+
+        return GeocodedLocation(
+            query=normalized_query,
+            label=label,
+            coordinates=Coordinates(
+                latitude=latitude,
+                longitude=longitude,
+            ),
+        )
