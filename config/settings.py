@@ -159,3 +159,5 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+HEIGIT_API_KEY = os.environ.get("HEIGIT_API_KEY", "")
