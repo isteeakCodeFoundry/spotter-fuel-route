@@ -121,3 +121,42 @@ def build_trip_plan_response(plan: TripPlan) -> dict:
             "normal_external_api_calls": 3,
         },
     }
+
+def build_trip_plan_summary_response(plan: TripPlan) -> dict:
+    return {
+        "start": plan.start.label,
+        "finish": plan.finish.label,
+        "route_distance_miles": round(
+            plan.route.distance_miles,
+            2,
+        ),
+        "fuel_stops": [
+            {
+                "route_mile": round(
+                    purchase.station.route_mile,
+                    1,
+                ),
+                "station": (
+                    purchase.station.station.name
+                ),
+                "city": (
+                    purchase.station.station.city
+                ),
+                "state": (
+                    purchase.station.station.state
+                ),
+                "gallons_to_buy": (
+                    purchase.gallons_purchased
+                ),
+                "price_per_gallon": (
+                    purchase.station.station.price_per_gallon
+                ),
+                "cost": purchase.cost,
+            }
+            for purchase in plan.fuel_plan.stops
+        ],
+        "total_gallons_purchased": (
+            plan.fuel_plan.total_gallons_purchased
+        ),
+        "total_cost": plan.fuel_plan.total_cost,
+    }

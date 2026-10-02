@@ -141,3 +141,45 @@ class TripPlanResponseSerializer(serializers.Serializer):
     fuel_stops = FuelStopSerializer(many=True)
     fuel_summary = FuelSummarySerializer()
     metadata = TripMetadataSerializer()
+
+
+class CompactFuelStopSerializer(serializers.Serializer):
+    route_mile = serializers.FloatField()
+    station = serializers.CharField()
+    city = serializers.CharField()
+    state = serializers.CharField()
+
+    gallons_to_buy = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+    )
+
+    price_per_gallon = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=8,
+    )
+
+    cost = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
+
+
+class TripPlanSummaryResponseSerializer(serializers.Serializer):
+    start = serializers.CharField()
+    finish = serializers.CharField()
+    route_distance_miles = serializers.FloatField()
+
+    fuel_stops = CompactFuelStopSerializer(
+        many=True,
+    )
+
+    total_gallons_purchased = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+    )
+
+    total_cost = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )

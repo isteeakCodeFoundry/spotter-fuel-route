@@ -124,6 +124,52 @@ def test_plan_trip_accepts_valid_locations(mock_plan):
         finish_query="Dallas, TX",
     )
 
+@override_settings(HEIGIT_API_KEY="test-key")
+@patch(
+    "trip_planner.api.views.TripPlannerService.plan",
+    return_value=make_trip_plan(),
+)
+def test_plan_trip_summary_returns_compact_fuel_plan(mock_plan):
+    client = APIClient()
+
+    response = client.post(
+        reverse("trip-plan-summary"),
+        {
+            "start": "Chicago, IL",
+            "finish": "Dallas, TX",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    assert response.data["start"] == "Chicago, IL, USA"
+    assert response.data["finish"] == "Dallas, TX, USA"
+    assert response.data["route_distance_miles"] == 600.0
+
+    assert len(response.data["fuel_stops"]) == 1
+
+    fuel_stop = response.data["fuel_stops"][0]
+
+    assert fuel_stop["route_mile"] == 450.0
+    assert fuel_stop["station"] == "Test Fuel"
+    assert fuel_stop["city"] == "Test City"
+    assert fuel_stop["state"] == "MO"
+    assert fuel_stop["gallons_to_buy"] == "10.000"
+    assert fuel_stop["price_per_gallon"] == "3.00000000"
+    assert fuel_stop["cost"] == "30.00"
+
+    assert response.data["total_gallons_purchased"] == "10.000"
+    assert response.data["total_cost"] == "30.00"
+
+    assert "route" not in response.data
+    assert "vehicle" not in response.data
+    assert "metadata" not in response.data
+
+    mock_plan.assert_called_once_with(
+        start_query="Chicago, IL",
+        finish_query="Dallas, TX",
+    )
 
 def test_plan_trip_rejects_blank_start():
     client = APIClient()
