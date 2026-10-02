@@ -86,3 +86,11 @@ class FuelPlan:
     total_gallons_purchased: Decimal
     total_cost: Decimal
     ending_fuel_gallons: Decimal
+
+@dataclass(frozen=True, slots=True)
+class TripPlan:
+    start: GeocodedLocation
+    finish: GeocodedLocation
+    route: Route
+    fuel_plan: FuelPlan
+    candidate_station_count: int
