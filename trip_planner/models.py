@@ -21,6 +21,16 @@ class FuelStation(models.Model):
         blank=True,
     )
 
+    geocode_source = models.CharField(
+        max_length=30,
+        blank=True,
+    )
+
+    geocode_quality = models.CharField(
+        max_length=30,
+        blank=True,
+    )
+
     class Meta:
         ordering = ["opis_id"]
 
