@@ -1,12 +1,11 @@
+from time import sleep
+
+import httpx
+
 from trip_planner.domain.entities import (
     Coordinates,
     Route,
 )
-
-import httpx
-
-from trip_planner.integrations.geocoding import Coordinates
-
 
 METERS_PER_MILE = 1609.344
 
@@ -64,33 +63,56 @@ class HeiGitRoutingClient:
             start: Coordinates,
             finish: Coordinates,
     ) -> Route:
-        try:
-            response = self._client.post(
-                self.BASE_URL,
-                headers={
-                    "Authorization": self._api_key,
-                    "Accept": "application/geo+json",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "coordinates": [
-                        [
-                            start.longitude,
-                            start.latitude,
-                        ],
-                        [
-                            finish.longitude,
-                            finish.latitude,
-                        ],
-                    ],
-                    "instructions": False,
-                },
-            )
 
-        except httpx.HTTPError as exc:
+        response = None
+
+        for attempt in range(2):
+            try:
+                response = self._client.post(
+                    self.BASE_URL,
+                    headers={
+                        "Authorization": self._api_key,
+                        "Accept": "application/geo+json",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "coordinates": [
+                            [
+                                start.longitude,
+                                start.latitude,
+                            ],
+                            [
+                                finish.longitude,
+                                finish.latitude,
+                            ],
+                        ],
+                        "instructions": False,
+                    },
+                )
+
+                break
+
+            except (
+                    httpx.RemoteProtocolError,
+                    httpx.ConnectError,
+                    httpx.ReadTimeout,
+            ) as exc:
+                if attempt == 1:
+                    raise RoutingProviderError(
+                        "Routing provider request failed."
+                    ) from exc
+
+                sleep(0.25)
+
+            except httpx.HTTPError as exc:
+                raise RoutingProviderError(
+                    "Routing provider request failed."
+                ) from exc
+
+        if response is None:
             raise RoutingProviderError(
                 "Routing provider request failed."
-            ) from exc
+            )
 
         if response.status_code == 429:
             raise RoutingProviderError(
