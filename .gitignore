@@ -43,3 +43,6 @@ Thumbs.db
 # Temporary
 tmp/
 temp/
+
+# Assessment/source datasets
+data/*.csv
