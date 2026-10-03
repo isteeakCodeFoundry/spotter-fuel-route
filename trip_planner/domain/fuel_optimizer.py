@@ -125,7 +125,6 @@ def optimize_fuel_stops(
             continue
 
         price = station.station.price_per_gallon
-
         cost = gallons_to_buy * price
 
         purchases.append(
@@ -189,7 +188,10 @@ def _collapse_same_mile_stations(
         stations: list[RouteFuelStation],
         route_distance: Decimal,
 ) -> list[RouteFuelStation]:
-    by_mile: dict[float, list[RouteFuelStation]] = defaultdict(list)
+    by_mile: dict[
+        float,
+        list[RouteFuelStation],
+    ] = defaultdict(list)
 
     for station in stations:
         station_mile = Decimal(str(station.route_mile))
@@ -205,9 +207,9 @@ def _collapse_same_mile_stations(
 
         by_mile[station.route_mile].append(station)
 
-    selected = []
+    selected: list[RouteFuelStation] = []
 
-    for route_mile, same_mile_stations in by_mile.items():
+    for same_mile_stations in by_mile.values():
         best = min(
             same_mile_stations,
             key=lambda candidate: (
@@ -267,7 +269,11 @@ def _validate_route_reachability(
         route_distance,
     ]
 
-    for left, right in zip(points, points[1:]):
+    for left, right in zip(
+            points,
+            points[1:],
+            strict=False,
+    ):
         if right - left > max_range_miles:
             raise NoFeasibleFuelPlanError(
                 "No fuel station sequence can satisfy the "

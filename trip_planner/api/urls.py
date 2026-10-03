@@ -1,10 +1,6 @@
 from django.urls import path
 
-from trip_planner.api.views import (
-    TripPlanSummaryView,
-    TripPlanView,
-)
-
+from trip_planner.api.views import TripPlanSummaryView, TripPlanView
 
 urlpatterns = [
     path(

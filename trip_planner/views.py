@@ -1,3 +1,4 @@
-from django.shortcuts import render
+"""Legacy app-level views module.
 
-# Create your views here.
+API views live under trip_planner.api.views.
+"""

@@ -6,3 +6,4 @@ pytest-django
 psycopg[binary]
 python-dotenv
 httpx
+ruff

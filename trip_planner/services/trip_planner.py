@@ -8,7 +8,6 @@ from trip_planner.integrations.geocoding import (
 from trip_planner.integrations.routing import HeiGitRoutingClient
 from trip_planner.repositories.fuel_stations import FuelStationRepository
 
-
 ROUTE_CORRIDOR_MILES = 10.0
 ROUTE_SAMPLE_INTERVAL_MILES = 5.0
 
@@ -77,9 +76,7 @@ class TripPlannerService:
             route=route,
             stations=stations,
             corridor_miles=ROUTE_CORRIDOR_MILES,
-            sample_interval_miles=(
-                ROUTE_SAMPLE_INTERVAL_MILES
-            ),
+            sample_interval_miles=ROUTE_SAMPLE_INTERVAL_MILES,
         )
 
         fuel_plan = optimize_fuel_stops(

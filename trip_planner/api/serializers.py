@@ -1,7 +1,8 @@
-from collections.abc import Mapping
 import unicodedata
+from collections.abc import Mapping
 
 from rest_framework import serializers
+
 
 class StrictSerializer(serializers.Serializer):
     def to_internal_value(self, data):
@@ -22,15 +23,21 @@ class StrictSerializer(serializers.Serializer):
 
         return super().to_internal_value(data)
 
+
 def normalize_location(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value).strip()
 
-    if any(unicodedata.category(character).startswith("C") for character in normalized):
+    if any(
+            unicodedata.category(character).startswith("C")
+            for character in normalized
+    ):
         raise serializers.ValidationError(
             "Location must not contain control characters."
         )
 
     return " ".join(normalized.split())
+
+
 class TripPlanRequestSerializer(StrictSerializer):
     start = serializers.CharField(
         max_length=255,
@@ -105,6 +112,43 @@ class FuelStopSerializer(serializers.Serializer):
     station = FuelStationResponseSerializer()
 
 
+class CompactFuelStopSerializer(serializers.Serializer):
+    route_mile = serializers.FloatField()
+    station = serializers.CharField()
+    city = serializers.CharField()
+    state = serializers.CharField()
+
+    gallons_to_buy = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+    )
+    price_per_gallon = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=8,
+    )
+    cost = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
+
+
+class TripPlanSummaryResponseSerializer(serializers.Serializer):
+    start = serializers.CharField()
+    finish = serializers.CharField()
+    route_distance_miles = serializers.FloatField()
+
+    fuel_stops = CompactFuelStopSerializer(many=True)
+
+    total_gallons_purchased = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+    )
+    total_cost = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
+
+
 class FuelSummarySerializer(serializers.Serializer):
     trip_gallons_required = serializers.DecimalField(
         max_digits=12,
@@ -141,45 +185,3 @@ class TripPlanResponseSerializer(serializers.Serializer):
     fuel_stops = FuelStopSerializer(many=True)
     fuel_summary = FuelSummarySerializer()
     metadata = TripMetadataSerializer()
-
-
-class CompactFuelStopSerializer(serializers.Serializer):
-    route_mile = serializers.FloatField()
-    station = serializers.CharField()
-    city = serializers.CharField()
-    state = serializers.CharField()
-
-    gallons_to_buy = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=3,
-    )
-
-    price_per_gallon = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=8,
-    )
-
-    cost = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-    )
-
-
-class TripPlanSummaryResponseSerializer(serializers.Serializer):
-    start = serializers.CharField()
-    finish = serializers.CharField()
-    route_distance_miles = serializers.FloatField()
-
-    fuel_stops = CompactFuelStopSerializer(
-        many=True,
-    )
-
-    total_gallons_purchased = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=3,
-    )
-
-    total_cost = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-    )

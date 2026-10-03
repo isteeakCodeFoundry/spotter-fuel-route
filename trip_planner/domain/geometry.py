@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import asin, cos, radians, sin, sqrt
-from typing import Sequence
 
 from trip_planner.domain.entities import (
     Coordinates,
@@ -8,7 +8,6 @@ from trip_planner.domain.entities import (
     Route,
     RouteFuelStation,
 )
-
 
 EARTH_RADIUS_MILES = 3958.7613
 
@@ -40,6 +39,7 @@ def haversine_miles(
 
     return 2 * EARTH_RADIUS_MILES * asin(sqrt(value))
 
+
 def interpolate_coordinates(
         start: Coordinates,
         finish: Coordinates,
@@ -55,6 +55,7 @@ def interpolate_coordinates(
                 + (finish.longitude - start.longitude) * fraction
         ),
     )
+
 
 def sample_route(
         route: Route,
@@ -76,6 +77,7 @@ def sample_route(
     for start, finish in zip(
             route.coordinates,
             route.coordinates[1:],
+            strict=False,
     ):
         segment_lengths.append(
             haversine_miles(start, finish)
@@ -98,7 +100,6 @@ def sample_route(
     ]
 
     next_target_route_mile = interval_miles
-
     raw_distance_before_segment = 0.0
 
     for index, raw_segment_length in enumerate(

@@ -8,7 +8,6 @@ from django.db import transaction
 
 from trip_planner.models import FuelPrice, FuelStation
 
-
 EXPECTED_HEADERS = (
     "OPIS Truckstop ID",
     "Truckstop Name",
@@ -36,7 +35,9 @@ class Command(BaseCommand):
         csv_path = Path(options["csv_path"])
 
         if not csv_path.is_file():
-            raise CommandError(f"CSV file does not exist: {csv_path}")
+            raise CommandError(
+                f"CSV file does not exist: {csv_path}"
+            )
 
         stations_by_opis: dict[int, dict] = {}
         prices_by_opis: dict[int, list[Decimal]] = {}
@@ -60,7 +61,10 @@ class Command(BaseCommand):
                         f"Received: {actual_headers}"
                     )
 
-                for line_number, row in enumerate(reader, start=2):
+                for line_number, row in enumerate(
+                        reader,
+                        start=2,
+                ):
                     rows_read += 1
 
                     parsed = self._parse_row(
@@ -70,7 +74,9 @@ class Command(BaseCommand):
 
                     opis_id = parsed["opis_id"]
 
-                    existing_station = stations_by_opis.get(opis_id)
+                    existing_station = (
+                        stations_by_opis.get(opis_id)
+                    )
 
                     if existing_station is None:
                         stations_by_opis[opis_id] = {
@@ -88,12 +94,17 @@ class Command(BaseCommand):
                             line_number=line_number,
                         )
 
-                        existing_station["name"] = self._preferred_name(
-                            existing_station["name"],
-                            parsed["name"],
+                        existing_station["name"] = (
+                            self._preferred_name(
+                                existing_station["name"],
+                                parsed["name"],
+                            )
                         )
 
-                    prices_by_opis.setdefault(opis_id, []).append(
+                    prices_by_opis.setdefault(
+                        opis_id,
+                        [],
+                    ).append(
                         parsed["retail_price"]
                     )
 
@@ -111,7 +122,9 @@ class Command(BaseCommand):
             stations_to_create = []
             stations_to_update = []
 
-            for opis_id, station_data in stations_by_opis.items():
+            for opis_id, station_data in (
+                    stations_by_opis.items()
+            ):
                 existing = existing_stations.get(opis_id)
 
                 if existing is None:
@@ -146,9 +159,11 @@ class Command(BaseCommand):
                     batch_size=1000,
                 )
 
-            persisted_stations = FuelStation.objects.in_bulk(
-                stations_by_opis.keys(),
-                field_name="opis_id",
+            persisted_stations = (
+                FuelStation.objects.in_bulk(
+                    stations_by_opis.keys(),
+                    field_name="opis_id",
+                )
             )
 
             station_ids = [
@@ -185,12 +200,14 @@ class Command(BaseCommand):
                 "\nFuel price import completed successfully."
             )
         )
-        self.stdout.write(f"Rows read: {rows_read}")
+        self.stdout.write(
+            f"Rows read: {rows_read}"
+        )
         self.stdout.write(
             f"Unique stations: {len(stations_by_opis)}"
         )
         self.stdout.write(
-            f"Price observations: "
+            "Price observations: "
             f"{sum(len(values) for values in prices_by_opis.values())}"
         )
         self.stdout.write(
@@ -203,11 +220,15 @@ class Command(BaseCommand):
             line_number: int,
     ) -> dict:
         try:
-            opis_id = int(row["OPIS Truckstop ID"].strip())
-            rack_id = int(row["Rack ID"].strip())
+            opis_id = int(
+                row["OPIS Truckstop ID"].strip()
+            )
+            rack_id = int(
+                row["Rack ID"].strip()
+            )
         except (ValueError, AttributeError) as exc:
             raise CommandError(
-                f"Invalid numeric identifier on CSV line "
+                "Invalid numeric identifier on CSV line "
                 f"{line_number}."
             ) from exc
 
@@ -222,13 +243,13 @@ class Command(BaseCommand):
             )
         except (InvalidOperation, AttributeError) as exc:
             raise CommandError(
-                f"Invalid retail price on CSV line "
+                "Invalid retail price on CSV line "
                 f"{line_number}."
             ) from exc
 
         if retail_price <= 0:
             raise CommandError(
-                f"Retail price must be positive on CSV line "
+                "Retail price must be positive on CSV line "
                 f"{line_number}."
             )
 
@@ -252,31 +273,31 @@ class Command(BaseCommand):
 
         if missing_fields:
             raise CommandError(
-                f"Missing required value(s) on CSV line "
+                "Missing required value(s) on CSV line "
                 f"{line_number}: {', '.join(missing_fields)}"
             )
 
         if len(name) > 100:
             raise CommandError(
-                f"Truckstop Name exceeds 100 characters "
+                "Truckstop Name exceeds 100 characters "
                 f"on CSV line {line_number}."
             )
 
         if len(address) > 150:
             raise CommandError(
-                f"Address exceeds 150 characters "
+                "Address exceeds 150 characters "
                 f"on CSV line {line_number}."
             )
 
         if len(city) > 100:
             raise CommandError(
-                f"City exceeds 100 characters "
+                "City exceeds 100 characters "
                 f"on CSV line {line_number}."
             )
 
         if len(state) != 2 or not state.isalpha():
             raise CommandError(
-                f"Invalid state code on CSV line "
+                "Invalid state code on CSV line "
                 f"{line_number}: {state!r}"
             )
 
@@ -308,7 +329,8 @@ class Command(BaseCommand):
                 raise CommandError(
                     "Conflicting station data for OPIS ID "
                     f"{existing['opis_id']} on CSV line "
-                    f"{line_number}: field {field_name!r} differs."
+                    f"{line_number}: "
+                    f"field {field_name!r} differs."
                 )
 
     @staticmethod
@@ -318,5 +340,8 @@ class Command(BaseCommand):
     ) -> str:
         return max(
             (first, second),
-            key=lambda value: (len(value), value),
+            key=lambda value: (
+                len(value),
+                value,
+            ),
         )

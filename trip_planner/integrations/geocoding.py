@@ -1,9 +1,11 @@
+from time import sleep
+
+import httpx
+
 from trip_planner.domain.entities import (
     Coordinates,
     GeocodedLocation,
 )
-from time import sleep
-import httpx
 
 
 class GeocodingError(Exception):
@@ -12,6 +14,7 @@ class GeocodingError(Exception):
 
 class LocationNotFoundError(GeocodingError):
     """Raised when a US location cannot be resolved."""
+
 
 class HeiGitGeocoder:
     BASE_URL = "https://api.heigit.org/pelias/v1/search"
@@ -90,7 +93,6 @@ class HeiGitGeocoder:
                     "Location geocoding provider request failed."
                 ) from exc
 
-
         try:
             payload = response.json()
         except ValueError as exc:
@@ -102,7 +104,7 @@ class HeiGitGeocoder:
 
         if not isinstance(features, list) or not features:
             raise LocationNotFoundError(
-                f"Could not resolve location within the USA: "
+                "Could not resolve location within the USA: "
                 f"{normalized_query!r}"
             )
 
@@ -133,7 +135,7 @@ class HeiGitGeocoder:
 
         if country_code != "USA":
             raise LocationNotFoundError(
-                f"Location is not within the USA: "
+                "Location is not within the USA: "
                 f"{normalized_query!r}"
             )
 

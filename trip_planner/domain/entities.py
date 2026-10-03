@@ -55,21 +55,6 @@ class RouteFuelStation:
     route_mile: float
     distance_from_route_miles: float
 
-@dataclass(frozen=True, slots=True)
-class FuelPurchase:
-    station: RouteFuelStation
-    gallons_purchased: Decimal
-    cost: Decimal
-
-
-@dataclass(frozen=True, slots=True)
-class FuelPlan:
-    stops: tuple[FuelPurchase, ...]
-    trip_gallons_required: Decimal
-    starting_fuel_gallons: Decimal
-    total_gallons_purchased: Decimal
-    total_cost: Decimal
-    ending_fuel_gallons: Decimal
 
 @dataclass(frozen=True, slots=True)
 class FuelPurchase:
@@ -86,6 +71,7 @@ class FuelPlan:
     total_gallons_purchased: Decimal
     total_cost: Decimal
     ending_fuel_gallons: Decimal
+
 
 @dataclass(frozen=True, slots=True)
 class TripPlan:

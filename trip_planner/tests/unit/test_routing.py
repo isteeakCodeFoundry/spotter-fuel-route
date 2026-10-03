@@ -10,6 +10,7 @@ from trip_planner.integrations.routing import (
     RoutingProviderError,
 )
 
+
 def test_get_route_returns_parsed_route():
     def handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
@@ -167,6 +168,7 @@ def test_get_route_handles_provider_failure():
                 longitude=-96.0,
             ),
         )
+
 
 @pytest.mark.parametrize(
     "exception_type",

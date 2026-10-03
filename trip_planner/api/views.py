@@ -8,16 +8,12 @@ from trip_planner.api.responses import (
     build_trip_plan_response,
     build_trip_plan_summary_response,
 )
-
 from trip_planner.api.serializers import (
     TripPlanRequestSerializer,
     TripPlanResponseSerializer,
     TripPlanSummaryResponseSerializer,
 )
-
-from trip_planner.domain.fuel_optimizer import (
-    NoFeasibleFuelPlanError,
-)
+from trip_planner.domain.fuel_optimizer import NoFeasibleFuelPlanError
 from trip_planner.integrations.geocoding import (
     GeocodingError,
     HeiGitGeocoder,
@@ -27,9 +23,7 @@ from trip_planner.integrations.routing import (
     RouteNotFoundError,
     RoutingProviderError,
 )
-from trip_planner.repositories.fuel_stations import (
-    FuelStationRepository,
-)
+from trip_planner.repositories.fuel_stations import FuelStationRepository
 from trip_planner.services.trip_planner import (
     TripLocationNotFoundError,
     TripPlannerService,
@@ -81,9 +75,7 @@ class TripPlanView(APIView):
                 service = TripPlannerService(
                     geocoder=geocoder,
                     router=router,
-                    fuel_station_repository=(
-                        FuelStationRepository()
-                    ),
+                    fuel_station_repository=FuelStationRepository(),
                 )
 
                 plan = service.plan(
@@ -148,12 +140,15 @@ class TripPlanView(APIView):
         response_serializer = TripPlanResponseSerializer(
             data=build_trip_plan_response(plan)
         )
-        response_serializer.is_valid(raise_exception=True)
+        response_serializer.is_valid(
+            raise_exception=True
+        )
 
         return Response(
             response_serializer.data,
             status=status.HTTP_200_OK,
         )
+
 
 class TripPlanSummaryView(APIView):
     @extend_schema(
@@ -199,9 +194,7 @@ class TripPlanSummaryView(APIView):
                 service = TripPlannerService(
                     geocoder=geocoder,
                     router=router,
-                    fuel_station_repository=(
-                        FuelStationRepository()
-                    ),
+                    fuel_station_repository=FuelStationRepository(),
                 )
 
                 plan = service.plan(
@@ -263,10 +256,8 @@ class TripPlanSummaryView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        response_serializer = (
-            TripPlanSummaryResponseSerializer(
-                data=build_trip_plan_summary_response(plan)
-            )
+        response_serializer = TripPlanSummaryResponseSerializer(
+            data=build_trip_plan_summary_response(plan)
         )
         response_serializer.is_valid(
             raise_exception=True
