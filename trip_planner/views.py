@@ -1,4 +1,8 @@
-"""Legacy app-level views module.
+from django.shortcuts import render
 
-API views live under trip_planner.api.views.
-"""
+
+def trip_map(request):
+    return render(
+        request,
+        "trip_planner/trip_map.html",
+    )

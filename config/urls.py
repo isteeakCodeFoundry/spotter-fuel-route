@@ -10,6 +10,8 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from trip_planner.views import trip_map
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("trip_planner.api.urls")),
@@ -24,4 +26,5 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name="api-schema"),
         name="redoc",
     ),
+    path("map/", trip_map, name="trip-map"),
 ]

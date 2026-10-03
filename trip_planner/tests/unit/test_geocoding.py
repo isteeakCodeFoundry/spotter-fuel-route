@@ -102,3 +102,49 @@ def test_geocode_rejects_non_us_result():
 
     with pytest.raises(LocationNotFoundError):
         geocoder.geocode("London")
+
+
+def test_geocode_rejects_non_us_provider_result():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["boundary.country"] == "US"
+
+        return httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "label": "Toronto, Ontario, Canada",
+                            "country_a": "CAN",
+                        },
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                -79.3832,
+                                43.6532,
+                            ],
+                        },
+                    }
+                ]
+            },
+            request=request,
+        )
+
+    client = httpx.Client(
+        transport=httpx.MockTransport(handler)
+    )
+
+    try:
+        geocoder = HeiGitGeocoder(
+            api_key="test-key",
+            client=client,
+        )
+
+        with pytest.raises(
+                LocationNotFoundError,
+                match="not within the USA",
+        ):
+            geocoder.geocode("Toronto, Canada")
+
+    finally:
+        client.close()

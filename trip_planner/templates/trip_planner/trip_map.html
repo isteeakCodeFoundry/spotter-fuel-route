@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+    <title>Spotter Fuel Route Planner</title>
+
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin=""
+    >
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                    Inter,
+                    system-ui,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0 0 6px;
+            font-size: 28px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #6b7280;
+        }
+
+        .planner {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 14px rgb(0 0 0 / 5%);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        input:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 1px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #map {
+            height: 650px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            font-size: 14px;
+        }
+
+        .status.error {
+            color: #b91c1c;
+        }
+
+        .status.success {
+            color: #047857;
+        }
+
+        .summary {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .summary.visible {
+            display: block;
+        }
+
+        .summary h2 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card {
+            padding: 10px;
+            border-radius: 8px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-card strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .stop-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .stop-list li {
+            padding: 10px 0;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        .stop-title {
+            font-weight: 600;
+        }
+
+        .stop-detail {
+            margin-top: 3px;
+            color: #6b7280;
+        }
+
+        .legend {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 900px) {
+            .planner {
+                grid-template-columns: 1fr;
+            }
+
+            #map {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="page">
+    <header class="header">
+        <h1>Spotter Fuel Route Planner</h1>
+        <p>
+            Plan a US route and view cost-effective fuel stops
+            for a 500-mile-range, 10 MPG vehicle.
+        </p>
+    </header>
+
+    <main class="planner">
+        <section class="panel">
+            <form id="trip-form">
+                <div class="form-group">
+                    <label for="start">Start</label>
+                    <input
+                            id="start"
+                            name="start"
+                            type="text"
+                            maxlength="255"
+                            value="Chicago, IL"
+                            autocomplete="off"
+                            required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="finish">Finish</label>
+                    <input
+                            id="finish"
+                            name="finish"
+                            type="text"
+                            maxlength="255"
+                            value="Dallas, TX"
+                            autocomplete="off"
+                            required
+                    >
+                </div>
+
+                <button id="plan-button" type="submit">
+                    Plan Route
+                </button>
+
+                <div
+                        id="status"
+                        class="status"
+                        role="status"
+                        aria-live="polite"
+                ></div>
+            </form>
+
+            <section id="summary" class="summary">
+                <h2>Trip Summary</h2>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <strong>Distance</strong>
+                        <span id="route-distance">—</span>
+                    </div>
+
+                    <div class="summary-card">
+                        <strong>Total fuel cost</strong>
+                        <span id="total-cost">—</span>
+                    </div>
+
+                    <div class="summary-card">
+                        <strong>Fuel purchased</strong>
+                        <span id="fuel-purchased">—</span>
+                    </div>
+
+                    <div class="summary-card">
+                        <strong>Fuel stops</strong>
+                        <span id="stop-count">—</span>
+                    </div>
+                </div>
+
+                <h2>Recommended Stops</h2>
+                <ol id="stop-list" class="stop-list"></ol>
+            </section>
+
+            <div class="legend">
+                The vehicle starts with a full tank.
+                Fuel cost shown is fuel purchased during the trip.
+            </div>
+        </section>
+
+        <section>
+            <div
+                    id="map"
+                    aria-label="Route and fuel stop map"
+            ></div>
+        </section>
+    </main>
+</div>
+
+<script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+></script>
+
+<script>
+    const map = L.map("map").setView(
+        [39.5, -98.35],
+        4
+    );
+
+    L.tileLayer(
+        "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                '&copy; OpenStreetMap contributors'
+        }
+    ).addTo(map);
+
+    const routeLayerGroup = L.layerGroup().addTo(map);
+
+    const form = document.getElementById("trip-form");
+    const planButton = document.getElementById("plan-button");
+    const statusElement = document.getElementById("status");
+    const summaryElement = document.getElementById("summary");
+    const routeDistanceElement =
+        document.getElementById("route-distance");
+    const totalCostElement =
+        document.getElementById("total-cost");
+    const fuelPurchasedElement =
+        document.getElementById("fuel-purchased");
+    const stopCountElement =
+        document.getElementById("stop-count");
+    const stopListElement =
+        document.getElementById("stop-list");
+
+    function setStatus(message, type = "") {
+        statusElement.textContent = message;
+        statusElement.className = "status";
+
+        if (type) {
+            statusElement.classList.add(type);
+        }
+    }
+
+    function createPopup(lines) {
+        const container = document.createElement("div");
+
+        for (const line of lines) {
+            const row = document.createElement("div");
+            row.textContent = line;
+            container.appendChild(row);
+        }
+
+        return container;
+    }
+
+    function addMarker(latitude, longitude, lines) {
+        const marker = L.marker(
+            [latitude, longitude]
+        );
+
+        marker.bindPopup(
+            createPopup(lines)
+        );
+
+        marker.addTo(routeLayerGroup);
+
+        return marker;
+    }
+
+    function renderSummary(data) {
+        routeDistanceElement.textContent =
+            `${data.route.distance_miles.toFixed(2)} miles`;
+
+        totalCostElement.textContent =
+            `$${data.fuel_summary.total_cost}`;
+
+        fuelPurchasedElement.textContent =
+            `${data.fuel_summary.gallons_purchased} gal`;
+
+        stopCountElement.textContent =
+            String(data.fuel_stops.length);
+
+        stopListElement.replaceChildren();
+
+        for (const stop of data.fuel_stops) {
+            const item = document.createElement("li");
+
+            const title = document.createElement("div");
+            title.className = "stop-title";
+            title.textContent = stop.station.name;
+
+            const location = document.createElement("div");
+            location.className = "stop-detail";
+            location.textContent =
+                `${stop.station.city}, ${stop.station.state}`;
+
+            const purchase = document.createElement("div");
+            purchase.className = "stop-detail";
+            purchase.textContent =
+                `Mile ${stop.route_mile} — ` +
+                `${stop.gallons_purchased} gal @ ` +
+                `$${stop.price_per_gallon}/gal — ` +
+                `$${stop.cost}`;
+
+            item.appendChild(title);
+            item.appendChild(location);
+            item.appendChild(purchase);
+
+            stopListElement.appendChild(item);
+        }
+
+        summaryElement.classList.add("visible");
+    }
+
+    function renderMap(data) {
+        routeLayerGroup.clearLayers();
+
+        const routeGeoJson = {
+            type: "Feature",
+            geometry: data.route.geometry,
+            properties: {}
+        };
+
+        const routeLayer = L.geoJSON(
+            routeGeoJson,
+            {
+                style: {
+                    weight: 5,
+                    opacity: 0.8
+                }
+            }
+        );
+
+        routeLayer.addTo(routeLayerGroup);
+
+        addMarker(
+            data.start.latitude,
+            data.start.longitude,
+            [
+                "Start",
+                data.start.label
+            ]
+        );
+
+        addMarker(
+            data.finish.latitude,
+            data.finish.longitude,
+            [
+                "Finish",
+                data.finish.label
+            ]
+        );
+
+        for (const stop of data.fuel_stops) {
+            addMarker(
+                stop.station.latitude,
+                stop.station.longitude,
+                [
+                    `Fuel stop: ${stop.station.name}`,
+                    `${stop.station.city}, ${stop.station.state}`,
+                    `Route mile: ${stop.route_mile}`,
+                    `Buy: ${stop.gallons_purchased} gallons`,
+                    `Price: $${stop.price_per_gallon}/gal`,
+                    `Cost: $${stop.cost}`
+                ]
+            );
+        }
+
+        const bounds = routeLayer.getBounds();
+
+        if (bounds.isValid()) {
+            map.fitBounds(
+                bounds,
+                {
+                    padding: [30, 30]
+                }
+            );
+        }
+    }
+
+    function extractErrorMessage(payload) {
+        if (
+            payload
+            && payload.error
+            && typeof payload.error.message === "string"
+        ) {
+            return payload.error.message;
+        }
+
+        if (
+            payload
+            && typeof payload.detail === "string"
+        ) {
+            return payload.detail;
+        }
+
+        return "Unable to plan the requested route.";
+    }
+
+    form.addEventListener(
+        "submit",
+        async (event) => {
+            event.preventDefault();
+
+            const start =
+                document.getElementById("start").value;
+            const finish =
+                document.getElementById("finish").value;
+
+            planButton.disabled = true;
+            summaryElement.classList.remove("visible");
+
+            setStatus("Planning route...");
+
+            try {
+                const response = await fetch(
+                    "/api/v1/trips/plan/",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            start,
+                            finish
+                        })
+                    }
+                );
+
+                let payload;
+
+                try {
+                    payload = await response.json();
+                } catch {
+                    throw new Error(
+                        "Server returned an invalid response."
+                    );
+                }
+
+                if (!response.ok) {
+                    throw new Error(
+                        extractErrorMessage(payload)
+                    );
+                }
+
+                renderMap(payload);
+                renderSummary(payload);
+
+                setStatus(
+                    "Route planned successfully.",
+                    "success"
+                );
+            } catch (error) {
+                routeLayerGroup.clearLayers();
+
+                setStatus(
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to plan the route.",
+                    "error"
+                );
+            } finally {
+                planButton.disabled = false;
+            }
+        }
+    );
+</script>
+</body>
+</html>
